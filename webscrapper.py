@@ -47,7 +47,7 @@ def webDataToClass(kino, film, godziny):
     
 def cinemacityscrape(driver):
     parent_elements = WebDriverWait(driver, 120).until(EC.presence_of_all_elements_located((By.XPATH, "/html/body/section[3]/section/div[1]/section/div[2]")))
-    
+    parent2 = parent_elements
     #edge case z pierwszym filmem(ma inna nazwe) - DZIALA
     for edge_case in parent_elements:
         edge_movie_block = edge_case.find_element(By.XPATH, '/html/body/section[3]/section/div[1]/section/div[2]/div')
@@ -58,11 +58,9 @@ def cinemacityscrape(driver):
         for godziny in godziny_wyswietlania:
             print(godziny.text)
         print("--------------")
-    
-    #NIEDZIALA NW DLACZEGO
-    for info_filmowe in parent_elements:
-        blok_z_filmem = info_filmowe.find_elements(By.CLASS_NAME, 'row qb-movie')
-        for filmy in blok_z_filmem:
+    for info_filmowe in parent2:
+        blok_z_filmem = info_filmowe.find_elements(By.CLASS_NAME, 'movie-row')
+        for filmy in blok_z_filmem: 
             movie_name = filmy.find_element(By.CLASS_NAME, 'qb-movie-name')
             godziny_wyswietlania = filmy.find_elements(By.CLASS_NAME, 'btn-primary')
             #test
@@ -71,6 +69,7 @@ def cinemacityscrape(driver):
                 print(godziny.text)
             print("--------------")
     
+    #for ti in parent_elements:
     #for ti in parent_elements:
         #print(ti.text)
     print('cinemacityscrape koniec')
