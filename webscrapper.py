@@ -7,19 +7,45 @@ from selenium.webdriver.chrome.options import Options
 
 class Film():
     filmy_do_wyboru = []
+    instancjie_classy = []
     
-    def __init__(self, Nazwa, kino):
+    def __init__(self, Nazwa, kino, Url):
         self.Nazwa = Nazwa
         self.kino = kino
         self.Godziny = []
         Film.filmy_do_wyboru.append(Nazwa + '.' + kino)
-
+        self.Url = Url
+        Film.instancjie_classy.append(self)
+    
     def dodajGodzine(self, godzina):
         self.Godziny.append(godzina)
 
     @classmethod
+    def sprawdz_godziny(cls, wybrana_godzina):
+        place_holder = [4000, 'Nazwa poszczegulnej instacji']
+        for Film in cls.instancjie_classy:
+            for H in Film.Godziny:
+                h = hour_text_to_int(H)
+                roznca = abs(h - wybrana_godzina)
+                if roznca == 0:
+                    return Film
+                elif h < place_holder[0]:
+                    place_holder[0] = h
+                    place_holder[1] = Film
+                elif roznca == place_holder[0]: #trzeba pomyslec o tym
+                    place_holder.append(Film)
+
+            return place_holder[1:]
+    #przetestuj czy dziala
+    
+    @classmethod
     def TytulyDoWyboru(cls):
         print(cls.filmy_do_wyboru)
+
+def hour_text_to_int(hour):
+    cleand_hour = hour.replace('.', '')
+    return int(cleand_hour)
+    
 
 def Web_Scrapper(url):
     Lista_Filmow_nazwa_class = []
@@ -32,71 +58,32 @@ def Web_Scrapper(url):
     titles = driver.title
     multikinocheck = url[-5:]
     if "Repertuar kina Cinema City" in titles:
-        cinemacityscrape(driver, url, Lista_Filmow_nazwa_class)
-        return Lista_Filmow_nazwa_class
+        web_to_class(driver, url, czesc_z_lista =  "/html/body/section[3]/section/div[1]/section/div[2]", czesc_z_blokiem = 'movie-row', czesc_z_nazwa = 'qb-movie-name', czesc_z_godzinami = 'btn-primary')
+        return 0
     elif multikinocheck in titles:
-        multikinoscrape(driver, url, Lista_Filmow_nazwa_class)
+        
         return Lista_Filmow_nazwa_class
     elif "Strona główna :" in titles:
-        heliosscrape(driver, url, Lista_Filmow_nazwa_class)
+        
         return Lista_Filmow_nazwa_class
 
-def cinemacityscrape(driver, url, Lista_Filmow_nazwa_class):
-    parent_elements = WebDriverWait(driver, 120).until(EC.presence_of_all_elements_located((By.XPATH, "/html/body/section[3]/section/div[1]/section/div[2]")))
+def web_to_class(driver, url, czesc_z_lista, czesc_z_blokiem, czesc_z_nazwa, czesc_z_godzinami):
+    parent_elements = WebDriverWait(driver, 120).until(EC.presence_of_all_elements_located((By.XPATH, czesc_z_lista)))
     parent2 = parent_elements
     Nazwa_kina = read_from_back_until_slash(url)
-  
-    #edge case z pierwszym filmem(ma inna nazwe)
-    for edge_case in parent_elements:
-        edge_movie_block = edge_case.find_element(By.XPATH, '/html/body/section[3]/section/div[1]/section/div[2]/div')
-        movie_name = edge_movie_block.find_element(By.CLASS_NAME, 'qb-movie-name')
-        godziny_wyswietlania = edge_movie_block.find_elements(By.CLASS_NAME, 'btn-primary')
-        Objekt_Film = Film( Nazwa= movie_name.text, kino= Nazwa_kina)
-        for godziny in godziny_wyswietlania:
-            Objekt_Film.dodajGodzine(godziny.text)
-        Lista_Filmow_nazwa_class.append(Objekt_Film)
-   
+
     for info_filmowe in parent2:
-        blok_z_filmem = info_filmowe.find_elements(By.CLASS_NAME, 'movie-row')
+        blok_z_filmem = info_filmowe.find_elements(By.CLASS_NAME, czesc_z_blokiem)
         for filmy in blok_z_filmem: 
-            movie_name = filmy.find_element(By.CLASS_NAME, 'qb-movie-name')
-            godziny_wyswietlania = filmy.find_elements(By.CLASS_NAME, 'btn-primary')
-            Objekt_Film = Film( Nazwa= movie_name.text, kino= Nazwa_kina)
+            movie_name = filmy.find_element(By.CLASS_NAME, czesc_z_nazwa)
+            godziny_wyswietlania = filmy.find_elements(By.CLASS_NAME, czesc_z_godzinami)
+            Objekt_Film = Film( Nazwa= movie_name.text, kino= Nazwa_kina, Url=url)
             for godziny in godziny_wyswietlania:
                 Objekt_Film.dodajGodzine(godziny.text)
-            Lista_Filmow_nazwa_class.append(Objekt_Film)
-    
-    #Test_klas(Lista_Filmow_nazwa_class=Lista_Filmow_nazwa_class)
-    print('cinemacityscrape koniec')
-  
-#NIE dziala, Trzeba naprawc(jutro)    
-def multikinoscrape(driver, url, Lista_Filmow_nazwa_class):
-    parent_elements = WebDriverWait(driver, 120).until(EC.presence_of_all_elements_located((By.XPATH, "/html/body/div[1]/main/div/div[1]/div[4]")))
-    parent2 = parent_elements
-    Nazwa_kina = read_from_back_until_slash(url)
-    """
-    #edge case z pierwszym filmem(ma inna nazwe)
-    for edge_case in parent_elements:
-        edge_movie_block = edge_case.find_element(By.CLASS_NAME, 'filmlist')
-        movie_name = edge_movie_block.find_element(By.CLASS_NAME, 'filmlist__title')
-        godziny_wyswietlania = edge_movie_block.find_elements(By.CLASS_NAME, 'filmlist__times')
-        Objekt_Film = Film( Nazwa= movie_name.text, kino= Nazwa_kina)
-        for godziny in godziny_wyswietlania:
-            Objekt_Film.dodajGodzine(godziny.text)
-        Lista_Filmow_nazwa_class.append(Objekt_Film)
-   """
-    for info_filmowe in parent2:
-        blok_z_filmem = info_filmowe.find_elements(By.CLASS_NAME, 'filmlist')
-        for filmy in blok_z_filmem: 
-            movie_name = filmy.find_element(By.CLASS_NAME, 'filmlist__title')
-            godziny_wyswietlania = filmy.find_elements(By.CLASS_NAME, 'filmlist__times')
-            Objekt_Film = Film( Nazwa= movie_name.text, kino= Nazwa_kina)
-            for godziny in godziny_wyswietlania:
-                Objekt_Film.dodajGodzine(godziny.text)
-            Lista_Filmow_nazwa_class.append(Objekt_Film)
     
     Test_klas(Lista_Filmow_nazwa_class=Lista_Filmow_nazwa_class)
-    print('multikinoscrappe koniec')
+    print(f'Konice scrapowania {url}')
+
 
 def heliosscrape():
     print("helios")
@@ -105,7 +92,7 @@ def read_from_back_until_slash(input_string):
     result = ""
     index = len(input_string) - 1
 
-    while index >= 0 and input_string[index] != '/':
+    while index >= 0 and input_string[index] != '//':
         result = input_string[index] + result
         index -= 1
 
@@ -120,6 +107,11 @@ def Test_klas(Lista_Filmow_nazwa_class):
         for h in i.Godziny:
             print(f"godziny: {h}")
 # Test
-#Web_Scrapper('https://www.cinema-city.pl/kina/mokotow')
+Web_Scrapper('https://www.cinema-city.pl/kina/mokotow')
 Web_Scrapper('https://multikino.pl/repertuar/warszawa-zlote-tarasy')
 #Web_Scrapper('https://www.helios.pl/57,Warszawa/StronaGlowna/')
+# cinema czesc_z_lista =  "/html/body/section[3]/section/div[1]/section/div[2]", czesc_z_blokiem = 'movie-row', czesc_z_nazwa = 'qb-movie-name', czesc_z_godzinami = 'btn-primary'
+
+
+
+    
