@@ -13,39 +13,47 @@ class Film():
         self.Nazwa = Nazwa
         self.kino = kino
         self.Godziny = []
-        Film.filmy_do_wyboru.append(Nazwa + '.' + kino)
         self.Url = Url
+        self.Najlepsza_godzina = None
         Film.instancjie_classy.append(self)
+    
+    def __str__(self):
+        return f'Film: {self.Nazwa}, Kino: {self.kino}, Godziny: {", ".join(self.Godziny)}'
     
     def dodajGodzine(self, godzina):
         self.Godziny.append(godzina)
-
-    @classmethod
-    def sprawdz_godziny(cls, wybrana_godzina):
-        place_holder = [4000, 'Nazwa poszczegulnej instacji']
-        for Film in cls.instancjie_classy:
-            for H in Film.Godziny:
-                h = hour_text_to_int(H)
-                roznca = abs(h - wybrana_godzina)
-                if roznca == 0:
-                    return Film
-                elif h < place_holder[0]:
-                    place_holder[0] = h
-                    place_holder[1] = Film
-                elif roznca == place_holder[0]: #trzeba pomyslec o tym
-                    place_holder.append(Film)
-
-            return place_holder[1:]
-    #przetestuj czy dziala
     
+    def __eq__(self, other):
+        return self.Nazwa == other.Nazwa
+
+   
+    @classmethod
+    def sprawdz_godziny(cls, wybrana_godzina, TYTUL):
+        Pozadane_filmy = []
+        for objekty in cls.instancjie_classy:
+            if objekty.Nazwa == TYTUL:
+                placeholder = 4000
+                for H in objekty.Godziny:
+                    h = hour_text_to_int(H, objekty)
+                    roznica = abs(h - wybrana_godzina)
+                    if roznica <= placeholder:
+                        objekty.Najlepsza_godzina = H
+                        placeholder = roznica
+                Pozadane_filmy.append(objekty)
+        return Pozadane_filmy
+
     @classmethod
     def TytulyDoWyboru(cls):
-        print(cls.filmy_do_wyboru)
+        for film in cls.instancjie_classy:
+            print(film)
 
-def hour_text_to_int(hour):
-    cleand_hour = hour.replace('.', '')
-    return int(cleand_hour)
-    
+def hour_text_to_int(hour, Film):
+    try:
+        cleand_hour = hour.replace(':', '')
+        return int(cleand_hour)
+    except ValueError:
+        Film = None
+        return int(999999)
 
 def Web_Scrapper(url):
     Lista_Filmow_nazwa_class = []
@@ -81,7 +89,7 @@ def web_to_class(driver, url, czesc_z_lista, czesc_z_blokiem, czesc_z_nazwa, cze
             for godziny in godziny_wyswietlania:
                 Objekt_Film.dodajGodzine(godziny.text)
     
-    Test_klas(Lista_Filmow_nazwa_class=Lista_Filmow_nazwa_class)
+    #Test_klas(Lista_Filmow_nazwa_class=Lista_Filmow_nazwa_class)
     print(f'Konice scrapowania {url}')
 
 
@@ -106,11 +114,29 @@ def Test_klas(Lista_Filmow_nazwa_class):
         print(f"Nazwa kina: {i.kino}")
         for h in i.Godziny:
             print(f"godziny: {h}")
-# Test
-Web_Scrapper('https://www.cinema-city.pl/kina/mokotow')
-Web_Scrapper('https://multikino.pl/repertuar/warszawa-zlote-tarasy')
-#Web_Scrapper('https://www.helios.pl/57,Warszawa/StronaGlowna/')
-# cinema czesc_z_lista =  "/html/body/section[3]/section/div[1]/section/div[2]", czesc_z_blokiem = 'movie-row', czesc_z_nazwa = 'qb-movie-name', czesc_z_godzinami = 'btn-primary'
+ 
+def Test_sortu():
+    print("amogus")
+    Web_Scrapper('https://www.cinema-city.pl/kina/mokotow')
+    Web_Scrapper('https://www.cinema-city.pl/kina/arkadia')
+    Film.TytulyDoWyboru()
+    sort_i_output(1900, 'CZAS KRWAWEGO KSIĘŻYCA')
+        
+        
+def sort_i_output(godzina, tytul):
+    Wyniki = Film.sprawdz_godziny(godzina, tytul)
+    for wynik in Wyniki:
+        print(f"Nazwa filmu: {wynik.Nazwa}") 
+        print(f"Nazwa kina: {wynik.kino}")
+        print(f"Najlepsza Godzina: {wynik.Najlepsza_godzina}")
+            
+if __name__ == "__main__":
+    Test_sortu()
+    # Test
+    #Web_Scrapper('https://www.cinema-city.pl/kina/mokotow')
+    #Web_Scrapper('https://multikino.pl/repertuar/warszawa-zlote-tarasy')
+    #Web_Scrapper('https://www.helios.pl/57,Warszawa/StronaGlowna/')
+    # cinema czesc_z_lista =  "/html/body/section[3]/section/div[1]/section/div[2]", czesc_z_blokiem = 'movie-row', czesc_z_nazwa = 'qb-movie-name', czesc_z_godzinami = 'btn-primary'
 
 
 
