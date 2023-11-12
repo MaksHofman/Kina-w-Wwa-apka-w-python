@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+import multiprocessing
 
 class Film():
     filmy_do_wyboru = []
@@ -71,23 +72,15 @@ def Web_Scrapper(url):
     multikinocheck = url[-5:]
     #scrapping dla cinemacity
     if "Repertuar kina Cinema City" in titles:
-        web_to_class(driver, url, czesc_z_lista =  "/html/body/section[3]/section/div[1]/section/div[2]", czesc_z_blokiem = 'movie-row', czesc_z_nazwa = 'qb-movie-name', czesc_z_godzinami = 'btn-primary')
-        return 0
-    #w wypadku scrappowania multikina
-    elif multikinocheck in titles:
-        
-        return Lista_Filmow_nazwa_class
-    #w wypadku scrappowania heliosa
-    elif "Strona główna :" in titles:
-        
-        return Lista_Filmow_nazwa_class
+        lista_tablic = web_to_class(driver, url, czesc_z_lista =  "/html/body/section[3]/section/div[1]/section/div[2]", czesc_z_blokiem = 'movie-row', czesc_z_nazwa = 'qb-movie-name', czesc_z_godzinami = 'btn-primary')
+        return lista_tablic
 
 #funkcjia scrapujaca strone. Zrobiona z zamyslem do wykorzystania w przypadku innym niz cinemacity. nie sprawdzona z innymi kinami
 def web_to_class(driver, url, czesc_z_lista, czesc_z_blokiem, czesc_z_nazwa, czesc_z_godzinami):
     parent_elements = WebDriverWait(driver, 120).until(EC.presence_of_all_elements_located((By.XPATH, czesc_z_lista)))
     parent2 = parent_elements
     Nazwa_kina = read_from_back_until_slash(url)
-
+    lista_tablic = []
     for info_filmowe in parent2:
         blok_z_filmem = info_filmowe.find_elements(By.CLASS_NAME, czesc_z_blokiem)
         for filmy in blok_z_filmem: 
@@ -96,12 +89,9 @@ def web_to_class(driver, url, czesc_z_lista, czesc_z_blokiem, czesc_z_nazwa, cze
             Objekt_Film = Film( Nazwa= movie_name.text, kino= Nazwa_kina, Url=url)
             for godziny in godziny_wyswietlania:
                 Objekt_Film.dodajGodzine(godziny.text)
-    
+            lista_tablic.append(Objekt_Film)
     print(f'Konice scrapowania {url}')
-    
-#niedodana opcjia do sprawdzania seansow w heliosie
-def heliosscrape():
-    print("helios")
+    return lista_tablic
     
 #funkcjia ktora znajduje nazwe kina w linku                    
 def read_from_back_until_slash(input_string):
@@ -113,36 +103,35 @@ def read_from_back_until_slash(input_string):
         index -= 1
 
     return result
-#zbedna funckjia testujaca dzialanosc wpisywania danych do klas
-def Test_klas(Lista_Filmow_nazwa_class):
-    Film.TytulyDoWyboru()
-    print(f"Dlugosc listy to {len(Lista_Filmow_nazwa_class)}")
-    for i in Lista_Filmow_nazwa_class:
-        print(f"Nazwa filmu: {i.Nazwa}")
-        print(f"Nazwa kina: {i.kino}")
-        for h in i.Godziny:
-            print(f"godziny: {h}")
 
-#zbedna funkcjia opowiedzialana za testownie podczas programowania 
-def Test_sortu():
-    print("amogus")
-    Web_Scrapper('https://www.cinema-city.pl/kina/mokotow')
-    Web_Scrapper('https://www.cinema-city.pl/kina/arkadia')
-    Film.TytulyDoWyboru()
-    sort_i_output(1900, 'CZAS KRWAWEGO KSIĘŻYCA')
 
 #funkcjia ktora sortuje i wypisuje gdzie i kiedy najblizszy seans                
 def sort_i_output(godzina, tytul):
+    print("fortine")
     Wyniki = Film.sprawdz_godziny(hour_text_to_int(godzina, Film=None), tytul)
     for wynik in Wyniki:
         print(f"Nazwa filmu: {wynik.Nazwa}") 
         print(f"Nazwa kina: {read_from_back_until_slash(wynik.kino)}")
         print(f"Najlepsza Godzina: {wynik.Najlepsza_godzina}")
- 
+
+def klas_sama_w_sobie(lista_klas):
+    for klasa in lista_klas:
+        objekt_Nowy = Film(Nazwa= klasa.Nazwa, kino= klasa.kino, Url=klasa.Url)
+        for h in klasa.Godziny:
+            objekt_Nowy.dodajGodzine(h)
+        
+    
 #funckja ktura daja uzytkonikowi moziliwosc sprawdzenia filmu            
 def Uzywalana_wersjia(Urls):
-    for url in Urls:
-        Web_Scrapper(url)
+    manager = multiprocessing.Manager()
+    lista_tablic = []
+    lista_tablic = manager.list()
+    number_of_process = len(Urls)
+    with multiprocessing.Pool(processes=number_of_process) as pool:
+        results = pool.map(Web_Scrapper, Urls)
+        lista_tablic.extend(results)
+        for data in lista_tablic:
+            klas_sama_w_sobie(data)
     print(Film.filmy_do_wyboru)
     nazwa_od_in = input("Nazwa filmu: ")    
     godzina_od_in = input("podaj godzine(w formacie 19:00): ")
@@ -156,4 +145,5 @@ if __name__ == "__main__":
     Uzywalana_wersjia(Urls)
 
 
+    
     
